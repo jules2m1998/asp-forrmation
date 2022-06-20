@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using api.posts.Data;
 using api.posts.Dtos;
 using api.posts.Helpers;
@@ -10,24 +11,76 @@ namespace api.posts.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly IUserRepository _repository;
+    private readonly UserRepository _repository;
     private readonly JwtService _jwtService;
+    private readonly IWebHostEnvironment _env;
 
-    public AuthController(IUserRepository repository, JwtService jwtService)
+    private readonly string[] _imgExt = new[]
+    {
+        "png",
+        "jpg",
+        "jpeg",
+    };
+    private readonly string _path = Path.Combine(new []
+    {
+        "wwwroot",
+        "images",
+        "user"
+    });
+
+    public AuthController(UserRepository repository, JwtService jwtService, IWebHostEnvironment env)
     {
         _repository = repository;
         _jwtService = jwtService;
+        _env = env;
     }
 
     [HttpPost("register")]
-    public ActionResult<User> Register(RegisterDto dto)
+    public async Task<ActionResult<User>> Register(
+        [Required][FromForm] string name, 
+        [Required][FromForm] string email, 
+        [Required][FromForm] string password, 
+        IFormFile? image
+        )
     {
         var user = new User
         {
-            Name = dto.Name,
-            Email = dto.Email,
-            Password = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+            Name = name,
+            Email = email,
+            Password = BCrypt.Net.BCrypt.HashPassword(password)
         };
+        if (image != null)
+        {
+            var fileExtension = Path.GetExtension(image.FileName);
+            var removedExt = fileExtension.Replace(".", "");
+            var isContain = _imgExt.Contains(removedExt);
+            if (!isContain)
+            {
+                return BadRequest(new
+                {
+                    message="format d'image non supporte"
+                });
+            }
+
+            var uuidPath = name + "_" + Guid.NewGuid() + fileExtension;
+            var filePath = Path.Combine(new []
+            {
+                _env.ContentRootPath,
+                _path,
+                uuidPath
+            });
+            await using (Stream fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(fileStream);
+            }
+
+            user.ImagePath = Path.Combine(new []
+            {
+                "images",
+                "user",
+                uuidPath
+            });
+        }
         _repository.Create(user);
         return Created("Utilisateur cree avec succes", user);
     }
@@ -45,7 +98,9 @@ public class AuthController : ControllerBase
         // Add to cookies
         Response.Cookies.Append("jwt", jwt,  new CookieOptions
         {
-            HttpOnly = true
+            HttpOnly = true,
+            Secure = true,
+            MaxAge = DateTimeOffset.Now.AddDays(1).TimeOfDay
         });
 
         return Ok(new

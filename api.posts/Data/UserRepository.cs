@@ -1,8 +1,9 @@
 using api.posts.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace api.posts.Data;
 
-public class UserRepository : IUserRepository
+public class UserRepository
 {
     private readonly DataContext _context;
 
@@ -21,11 +22,17 @@ public class UserRepository : IUserRepository
 
     public User? GetByEmail(string email)
     {
-        return _context.Users.FirstOrDefault(u => u.Email == email);
+        return _context.Users
+            .AsNoTracking()
+            .Include(u => u.Posts)
+            .FirstOrDefault(u => u.Email == email);
     }
 
     public User? GetById(int id)
     {
-        return _context.Users.FirstOrDefault(u => u.Id == id);
+        return _context.Users
+            .AsNoTracking()
+            .Include(u => u.Posts)
+            .FirstOrDefault(u => u.Id == id);
     }
 }

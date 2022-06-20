@@ -20,4 +20,10 @@
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.19.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Migrations" />
+      <Folder Include="wwwroot\images\post" />
+      <Folder Include="wwwroot\images\user" />
+    </ItemGroup>
+
 </Project>
