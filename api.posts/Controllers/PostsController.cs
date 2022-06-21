@@ -24,4 +24,10 @@ public class PostsController: ControllerBase
     {
         return Ok(_repository.GetAll());
     }
+
+    [HttpGet("children")]
+    public ActionResult<List<Post>> GetChildren(int postId)
+    {
+        return Ok(_repository.GetChildren(postId));
+    }
 }

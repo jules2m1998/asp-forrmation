@@ -51,7 +51,7 @@ public class UserPostController: ControllerBase
         {
             return BadRequest(new
             {
-                e.Message
+                message=e.Message
             });
         }
 
